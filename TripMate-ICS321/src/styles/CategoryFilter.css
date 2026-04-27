@@ -1,0 +1,34 @@
+.category-filter {
+    display: flex;
+    flex-wrap: nowrap;    /* Prevents buttons from jumping to a second line */
+    gap: 10px;
+    margin-bottom: 10px;     /* CRITICAL: Set to 0 so it aligns with the search bar */
+    flex-shrink: 1;
+}
+
+.category-filter__btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--divider);
+    background-color: var(--light-gray);
+    color: var(--text-dark);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-bottom: 20px;
+}
+
+.category-filter__btn:hover {
+    border-color: var(--blue-hover);
+    color: var(--primary-blue);
+}
+
+.category-filter__btn--active {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}

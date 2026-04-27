@@ -1,0 +1,30 @@
+.city-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 30px; /* Space between city tabs and search bar */
+}
+
+.city-tabs__btn {
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--divider);
+    background-color: var(--light-gray);
+    color:var(--text-dark);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.city-tabs__btn:hover {
+    border-color: var(--blue-hover);
+    color: var(--primary-blue);
+}
+
+/* Active state matching the purple in your screenshot */
+.city-tabs__btn--active {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}

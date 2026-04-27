@@ -1,0 +1,594 @@
+/* ----------- Create Trip Page ------------ */
+
+.create-trip-page {
+    min-height: 100vh;
+    background-color: var(--off-white);
+    padding: 40px 60px;
+}
+
+.create-trip-title {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.create-trip-title--highlight {
+    color: var(--primary-blue);
+}
+
+.create-trip-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+}
+
+
+/* ----------- TripForm ------------ */
+
+.trip-form {
+    display: flex;
+    flex-direction: row;
+    gap: 12px; /* space between the 4 fields */
+    align-items: flex-end; /* line them up at the bottom */
+    background-color: var(--white);
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+}
+
+.trip-form__field {
+    display: flex;
+    flex-direction: column;           /* label on top, input below */
+    gap: 6px;
+}
+
+/* Trip name field is wider */
+.trip-form__field:first-child {
+    flex: 3;
+}
+
+/* City and Days fields are smaller */
+.trip-form__field:not(:first-child) {
+    flex: 1;
+}
+
+.trip-form__add-btn {
+    padding: 0 20px;
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    height: 38px;
+    white-space: nowrap;
+    transition: background 0.2s;
+    margin-bottom: 2px;
+}
+
+.trip-form__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.trip-form__input,
+.trip-form__select {
+    padding: 8px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-dark);
+    background-color: var(--off-white);
+    outline: none;
+    cursor: pointer;
+}
+
+/* highlight border when focused using primary blue */
+.trip-form__input:focus,
+.trip-form__select:focus {
+    border-color: var(--primary-blue);
+}
+
+.trip-form__error {
+    font-size: 12px;
+    color: var(--error);
+    margin-top: 4px;
+    align-self: flex-end;   /* aligns with the button */
+    margin-bottom: 2px;
+}
+
+/* ----------- DayTabs ------------ */
+
+.day-tabs-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.day-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+.day-tabs__item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.day-tabs__btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1.5px solid var(--divider);
+    background-color: var(--white);
+    color: var(--text-dark);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-tabs__btn:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+/* active day — filled blue */
+.day-tabs__btn--active {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+}
+
+
+/* ✕ button on each day tab */
+.day-tabs__remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.day-tabs__remove:hover {
+    background-color: var(--error);
+    color: var(--white);
+}
+
+/* + Day button */
+.day-tabs__control-btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-tabs__control-btn--add {
+    background-color: var(--white);
+    color: var(--primary-blue);
+    border: 1.5px solid var(--primary-blue);
+}
+
+.day-tabs__control-btn--add:hover:not(:disabled) {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.day-tabs__control-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+
+/* ----------- ItineraryPanel ------------ */
+
+.itinerary-panel {
+    background-color: var(--white);
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.itinerary-panel__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.itinerary-panel__day {
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.itinerary-panel__day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: var(--off-white);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-dark);
+}
+
+.itinerary-panel__count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.itinerary-panel__empty {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.itinerary-panel__list {
+    list-style: none;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.itinerary-panel__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-dark);
+}
+
+.itinerary-panel__remove {
+    background: none;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.itinerary-panel__remove:hover {
+    background-color: #fdecea;
+}
+
+.create-trip-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;  /* sidebar stays at top */
+}
+
+.create-trip-main {
+    flex: 2; /* left side takes more space */
+}
+
+.create-trip-sidebar {
+    flex: 1;                  /* right side is narrower */
+    position: sticky;
+    top: 20px;                /* sidebar stays visible when scrolling */
+}
+
+
+/* ----------- MemberPanel ------------ */
+
+
+.member-panel {
+    background-color: var(--white);
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.member-panel__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+}
+
+.member-panel__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.member-panel__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Circle avatar with first letter */
+.member-panel__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--blue-tint);
+    color: var(--primary-blue);
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.member-panel__info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.member-panel__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.member-panel__role {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.member-panel__crown {
+    font-size: 16px;
+}
+
+.member-panel__remove {
+    background: none;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.member-panel__remove:hover {
+    background-color: #fdecea;
+}
+
+.member-panel__divider {
+    border: none;
+    border-top: 1px solid var(--divider);
+    margin: 12px 0;
+}
+
+/* Add member inputs */
+.member-panel__add {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.member-panel__add-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.member-panel__input {
+    padding: 8px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-dark);
+    background-color: var(--off-white);
+    outline: none;
+}
+
+.member-panel__input:focus {
+    border-color: var(--primary-blue);
+}
+
+.member-panel__add-btn {
+    padding: 9px;
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.member-panel__add-btn:hover {
+    background-color: var(--blue-hover);
+}
+
+.member-panel__error {
+    font-size: 12px;
+    color: var(--error);
+}
+
+.member-panel__success {
+    font-size: 12px;
+    color: var(--success);
+    line-height: 1.5;
+}
+.trip-creation-header {
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.main-create-btn {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    height: fit-content;
+    white-space: nowrap;
+}
+
+.trip-selector-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.trip-tab {
+    padding: 12px;
+    border: 1px solid var(--divider);
+    background: white;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.trip-tab.active {
+    border-left: 5px solid var(--primary-blue);
+    background: var(--off-white);
+    font-weight: 600;
+}
+
+.sidebar-section-title {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.no-trip-msg {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 0;
+    border: 2px dashed var(--divider);
+    border-radius: 12px;
+}
+
+/* Row wrapping trip name + delete icon */
+.trip-tab-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Make trip button take all available space */
+.trip-tab-row .trip-tab {
+    flex: 1;
+}
+
+/* Delete icon button */
+.trip-tab__delete {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    opacity: 0.5;
+}
+
+/* Show clearly on hover */
+.trip-tab__delete:hover {
+    background-color: #fdecea;
+    opacity: 1;
+}
+
+.place-error {
+    font-size: 13px;
+    color: var(--error);
+    background-color: #fdecea;
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.place-cards-container {
+    display: grid;
+    /* This creates the columns.
+       'repeat(auto-fill...)' makes them small and side-by-side automatically */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+}
+
+/* ----------- Responsive ------------ */
+
+@media (max-width: 768px) {
+    .create-trip-page {
+        padding: 24px;
+    }
+
+    .create-trip-title {
+        font-size: 32px;
+    }
+
+    .trip-form {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .trip-form__field:first-child,
+    .trip-form__field:not(:first-child) {
+        flex: unset;
+        width: 100%;
+    }
+
+    .trip-form__add-btn {
+        width: 100%;
+        height: 42px;
+    }
+
+    .create-trip-layout {
+        flex-direction: column;
+    }
+
+    .create-trip-sidebar {
+        position: static;
+        width: 100%;
+    }
+
+    .place-cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .create-trip-page {
+        padding: 16px;
+    }
+
+    .create-trip-title {
+        font-size: 26px;
+    }
+
+    .create-trip-subtitle {
+        font-size: 14px;
+    }
+}
