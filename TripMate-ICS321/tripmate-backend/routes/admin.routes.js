@@ -1,173 +1,237 @@
 import express from "express";
-import User from "../models/User.js";
-import City from "../models/City.js";
-import Place from "../models/Place.js";
-import Report from "../models/Reports.js";
+import db from "../config/db.js";
 import { protect, adminOnly } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// PUBLIC — no auth needed
+// PUBLIC
 router.get("/cities-list", async (req, res) => {
-    try {
-        const cities = await City.find();
-        res.json(cities);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    const [cities] = await db.query("SELECT * FROM CITY ORDER BY name");
+    res.json(cities);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// Everything below requires admin
 router.use(protect, adminOnly);
 
-// GET /api/admin/users
+// USERS
 router.get("/users", async (req, res) => {
-    try {
-        const users = await User.find().select("-password");
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    const [users] = await db.query(
+      "SELECT user_id, name, email, role, created_at FROM USER"
+    );
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// PUT /api/admin/users/:id
 router.put("/users/:id", async (req, res) => {
-    try {
-        const updated = await User.findByIdAndUpdate(
-            req.params.id,
-            { fullName: req.body.fullName, email: req.body.email },
-            { new: true }
-        ).select("-password");
-        if (!updated) return res.status(404).json({ message: "User not found." });
-        res.json(updated);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    await db.query(
+      "UPDATE USER SET name = ?, email = ? WHERE user_id = ?",
+      [req.body.fullName, req.body.email, req.params.id]
+    );
+
+    const [updated] = await db.query(
+      "SELECT user_id, name, email, role, created_at FROM USER WHERE user_id = ?",
+      [req.params.id]
+    );
+
+    if (updated.length === 0) return res.status(404).json({ message: "User not found." });
+
+    res.json(updated[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// DELETE /api/admin/users/:id
 router.delete("/users/:id", async (req, res) => {
-    try {
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) return res.status(404).json({ message: "User not found." });
-        res.json({ success: true, message: "User deleted." });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    await db.query("DELETE FROM REVIEW WHERE user_id = ?", [req.params.id]);
+    await db.query("DELETE FROM TRIP_MEMBER WHERE user_id = ?", [req.params.id]);
+    const [result] = await db.query("DELETE FROM USER WHERE user_id = ?", [req.params.id]);
+
+    if (result.affectedRows === 0) return res.status(404).json({ message: "User not found." });
+
+    res.json({ success: true, message: "User deleted." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// POST /api/admin/cities
+// CITIES
 router.post("/cities", async (req, res) => {
-    const { cityName } = req.body;
-    if (!cityName) return res.status(400).json({ message: "City name required" });
-    try {
-        const exists = await City.findOne({ name: cityName });
-        if (exists) return res.status(400).json({ message: "City already exists" });
-        const city = await City.create({ name: cityName });
-        res.status(201).json(city);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  const { cityName, region } = req.body;
+
+  if (!cityName) return res.status(400).json({ message: "City name required" });
+
+  try {
+    const [exists] = await db.query("SELECT * FROM CITY WHERE name = ?", [cityName]);
+
+    if (exists.length > 0) {
+      return res.status(400).json({ message: "City already exists" });
     }
+
+    const [result] = await db.query(
+      "INSERT INTO CITY (name, region) VALUES (?, ?)",
+      [cityName, region || "Saudi Arabia"]
+    );
+
+    const [city] = await db.query("SELECT * FROM CITY WHERE city_id = ?", [result.insertId]);
+
+    res.status(201).json(city[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// PUT /api/admin/cities/:id
 router.put("/cities/:id", async (req, res) => {
-    try {
-        const updated = await City.findByIdAndUpdate(
-            req.params.id,
-            { name: req.body.cityName },
-            { new: true }
-        );
-        if (!updated) return res.status(404).json({ message: "City not found." });
-        res.json(updated);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    await db.query(
+      "UPDATE CITY SET name = ? WHERE city_id = ?",
+      [req.body.cityName, req.params.id]
+    );
+
+    const [updated] = await db.query("SELECT * FROM CITY WHERE city_id = ?", [req.params.id]);
+
+    if (updated.length === 0) return res.status(404).json({ message: "City not found." });
+
+    res.json(updated[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// DELETE /api/admin/cities/:id
 router.delete("/cities/:id", async (req, res) => {
-    try {
-        const city = await City.findByIdAndDelete(req.params.id);
-        if (!city) return res.status(404).json({ message: "City not found." });
-        res.json({ success: true, message: "City deleted." });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    const [result] = await db.query("DELETE FROM CITY WHERE city_id = ?", [req.params.id]);
+
+    if (result.affectedRows === 0) return res.status(404).json({ message: "City not found." });
+
+    res.json({ success: true, message: "City deleted." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// POST /api/admin/places
+// PLACES
 router.post("/places", async (req, res) => {
-    const { name, city, category, description, image, rating } = req.body;
-    if (!name || !city || !category || !description) {
-        return res.status(400).json({ message: "Please fill in all required fields." });
+  const { name, city, category, description, image } = req.body;
+
+  if (!name || !city || !category || !description) {
+    return res.status(400).json({ message: "Please fill in all required fields." });
+  }
+
+  try {
+    const [cities] = await db.query("SELECT city_id FROM CITY WHERE name = ?", [city]);
+
+    if (cities.length === 0) {
+      return res.status(400).json({ message: "City not found." });
     }
-    try {
-        const place = await Place.create({ name, city, category, description, image: image || "", rating: rating || 0 });
-        res.status(201).json(place);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+
+    const [result] = await db.query(
+      `
+      INSERT INTO PLACE (name, category, description, city_id, image_url)
+      VALUES (?, ?, ?, ?, ?)
+      `,
+      [name, category, description, cities[0].city_id, image || ""]
+    );
+
+    const [place] = await db.query("SELECT * FROM PLACE WHERE place_id = ?", [result.insertId]);
+
+    res.status(201).json(place[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// PUT /api/admin/places/:id
 router.put("/places/:id", async (req, res) => {
-    try {
-        const updated = await Place.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updated) return res.status(404).json({ message: "Place not found." });
-        res.json(updated);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  const { name, category, description, image } = req.body;
+
+  try {
+    await db.query(
+      `
+      UPDATE PLACE
+      SET name = COALESCE(?, name),
+          category = COALESCE(?, category),
+          description = COALESCE(?, description),
+          image_url = COALESCE(?, image_url)
+      WHERE place_id = ?
+      `,
+      [name, category, description, image, req.params.id]
+    );
+
+    const [updated] = await db.query("SELECT * FROM PLACE WHERE place_id = ?", [req.params.id]);
+
+    if (updated.length === 0) return res.status(404).json({ message: "Place not found." });
+
+    res.json(updated[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// DELETE /api/admin/places/:id
 router.delete("/places/:id", async (req, res) => {
-    try {
-        const place = await Place.findByIdAndDelete(req.params.id);
-        if (!place) return res.status(404).json({ message: "Place not found." });
-        res.json({ success: true, message: "Place deleted." });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    await db.query("DELETE FROM REVIEW WHERE place_id = ?", [req.params.id]);
+    await db.query("DELETE FROM DAY_PLACE WHERE place_id = ?", [req.params.id]);
+
+    const [result] = await db.query("DELETE FROM PLACE WHERE place_id = ?", [req.params.id]);
+
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Place not found." });
+
+    res.json({ success: true, message: "Place deleted." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-
-
-// GET /api/admin/reports
+// REPORTS
 router.get("/reports", async (req, res) => {
-    try {
-        const reports = await Report.find().sort({ createdAt: -1 });
-        res.json(reports);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    const [reports] = await db.query("SELECT * FROM REPORT ORDER BY created_at DESC");
+    res.json(reports);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// PUT /api/admin/reports/:id
 router.put("/reports/:id", async (req, res) => {
-    try {
-        const updated = await Report.findByIdAndUpdate(
-            req.params.id,
-            { status: "Reviewed" },
-            { new: true }
-        );
-        if (!updated) return res.status(404).json({ message: "Report not found." });
-        res.json(updated);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    await db.query(
+      "UPDATE REPORT SET status = 'Reviewed' WHERE report_id = ?",
+      [req.params.id]
+    );
+
+    const [updated] = await db.query(
+      "SELECT * FROM REPORT WHERE report_id = ?",
+      [req.params.id]
+    );
+
+    if (updated.length === 0) return res.status(404).json({ message: "Report not found." });
+
+    res.json(updated[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-// DELETE /api/admin/reports/:id
 router.delete("/reports/:id", async (req, res) => {
-    try {
-        const report = await Report.findByIdAndDelete(req.params.id);
-        if (!report) return res.status(404).json({ message: "Report not found." });
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  try {
+    const [result] = await db.query(
+      "DELETE FROM REPORT WHERE report_id = ?",
+      [req.params.id]
+    );
+
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Report not found." });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 export default router;

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import db from "../config/db.js";
 
 const protect = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -13,15 +13,19 @@ const protect = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await User.findById(decoded.id).select("-password");
+        const [users] = await db.query(
+            "SELECT user_id, name, email, role FROM `USER` WHERE user_id = ?",
+            [decoded.id]
+        );
 
-        if (!user) {
+        if (users.length === 0) {
             return res.status(401).json({ message: "User not found" });
         }
 
-        req.user = user;
+        req.user = users[0];
 
         next();
+
     } catch (error) {
         return res.status(401).json({ message: "Invalid or expired token" });
     }

@@ -1,13 +1,14 @@
-import mongoose from "mongoose";
+import db from "../config/db.js";
 
-const citySchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-    },
-});
+export const getAllCities = async () => {
+  const [rows] = await db.query("SELECT * FROM CITY");
+  return rows;
+};
 
-const City = mongoose.model("City", citySchema);
-export default City;
+export const getCityById = async (id) => {
+  const [rows] = await db.query(
+    "SELECT * FROM CITY WHERE city_id = ?",
+    [id]
+  );
+  return rows[0];
+};

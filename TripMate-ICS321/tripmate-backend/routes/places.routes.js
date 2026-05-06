@@ -1,22 +1,43 @@
 import express from "express";
-import Place from "../models/Place.js";
-import { protect } from "../middleware/auth.middleware.js";
+import db from "../config/db.js";
 
 const router = express.Router();
 
-// GET /api/places
-router.get("/",  async (req, res) => {
-    const { city, category } = req.query;
-    const filter = {};
-    if (city) filter.city = city;
-    if (category) filter.category = category;
+// GET /api/places?city=Riyadh&category=Culture
+router.get("/", async (req, res) => {
+  const { city, category } = req.query;
 
-    try {
-        const places = await Place.find(filter);
-        res.json(places);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  try {
+    let sql = `
+      SELECT 
+        p.place_id,
+        p.name,
+        p.category,
+        p.description,
+        p.image_url AS image,
+        c.name AS city
+      FROM PLACE p
+      JOIN CITY c ON p.city_id = c.city_id
+      WHERE 1=1
+    `;
+
+    const values = [];
+
+    if (city) {
+      sql += " AND c.name = ?";
+      values.push(city);
     }
+
+    if (category) {
+      sql += " AND p.category = ?";
+      values.push(category);
+    }
+
+    const [places] = await db.query(sql, values);
+    res.json(places);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 export default router;

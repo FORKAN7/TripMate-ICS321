@@ -1,10 +1,14 @@
-import mongoose from "mongoose";
+import db from "../config/db.js";
 
-const reportSchema = new mongoose.Schema({
-    content: { type: String, required: true },
-    status: { type: String, default: "Pending" },
-    createdAt: { type: Date, default: Date.now },
-});
+export const createReport = async (content) => {
+  const [result] = await db.query(
+    "INSERT INTO REPORT (content) VALUES (?)",
+    [content]
+  );
+  return result.insertId;
+};
 
-const Report = mongoose.model("Report", reportSchema);
-export default Report;
+export const getAllReports = async () => {
+  const [rows] = await db.query("SELECT * FROM REPORT");
+  return rows;
+};

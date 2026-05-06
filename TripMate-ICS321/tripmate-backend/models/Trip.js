@@ -1,58 +1,28 @@
-import mongoose from "mongoose";
+import db from "../config/db.js";
 
-const memberSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    role: {
-        type: String,
-        default: "Member",
-    },
-    id: Number,
-});
+export const getTripsByUser = async (userId) => {
+  const [rows] = await db.query(
+    "SELECT * FROM TRIP WHERE organizer_id = ?",
+    [userId]
+  );
+  return rows;
+};
 
-const daySchema = new mongoose.Schema({
-    dayNumber: Number,
-    places: [
-        {
-            name: String,
-            category: String,
-            city: String,
-            image: String,
-        },
-    ],
-});
+export const getTripById = async (tripId) => {
+  const [rows] = await db.query(
+    "SELECT * FROM TRIP WHERE trip_id = ?",
+    [tripId]
+  );
+  return rows[0];
+};
 
-const tripSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    },
-    name: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-    destination: {
-        type: String,
-        required: true,
-    },
-    duration: {
-        type: Number,
-        required: true,
-        min: 1,
-        max: 12,
-    },
-    itinerary: {
-        type: mongoose.Schema.Types.Mixed, // يقبل أي شكل
-        default: {}
-    },
-    members: [memberSchema],
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
+export const createTrip = async ({ title, startDate, endDate, organizerId, inviteCode }) => {
+  const [result] = await db.query(
+    `INSERT INTO TRIP 
+     (title, start_date, end_date, organizer_id, invite_code)
+     VALUES (?, ?, ?, ?, ?)`,
+    [title, startDate, endDate, organizerId, inviteCode]
+  );
 
-const Trip = mongoose.model("Trip", tripSchema);
-export default Trip;
+  return result.insertId;
+};
