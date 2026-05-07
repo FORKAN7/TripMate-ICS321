@@ -1,12 +1,14 @@
 import { useState } from "react";
 
+const API = "http://localhost:3001/api";
+const getToken = () => localStorage.getItem("tripmate_token");
+
 function UsersView({ users = [], onDeleteUser, onEditUser }) {
     const emptyForm = {
-        id: null,
+        user_id: null,
         name: "",
         email: "",
         role: "Member",
-        status: "Active",
     };
 
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -20,12 +22,12 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
 
     const handleOpenEditForm = (user) => {
         setFormData({
-            id: user.id,
+            user_id: user.user_id || user.id,
             name: user.name || "",
             email: user.email || "",
             role: user.role || "Member",
-            status: user.status || "Active",
         });
+
         setIsFormOpen(true);
     };
 
@@ -36,56 +38,110 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
         setFormData((prev) => ({
             ...prev,
             [name]: value,
         }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
+    const handleSubmit = async () => {
         if (!formData.name.trim() || !formData.email.trim()) {
             alert("Please fill in name and email.");
             return;
         }
 
-        onEditUser({
-            id: formData.id,
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            role: formData.role,
-            status: formData.status,
-        });
+        try {
+            const res = await fetch(
+                `${API}/admin/users/${formData.user_id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${getToken()}`,
+                    },
+                    body: JSON.stringify({
+                        fullName: formData.name,
+                        email: formData.email,
+                    }),
+                }
+            );
 
-        showMessage("User updated successfully.");
-        handleCloseForm();
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message);
+                return;
+            }
+
+            onEditUser({
+                ...data,
+                user_id: formData.user_id,
+                id: formData.user_id,
+            });
+
+            showMessage("User updated successfully.");
+            handleCloseForm();
+
+        } catch {
+            alert("Server error.");
+        }
     };
 
-    const handleDelete = (userId) => {
-        const confirmed = window.confirm("Are you sure you want to delete this user?");
+    const handleDelete = async (userId) => {
+        const confirmed = window.confirm(
+            "Are you sure you want to delete this user?"
+        );
+
         if (!confirmed) return;
 
-        onDeleteUser(userId);
-        showMessage("User deleted successfully.");
+        try {
+            const res = await fetch(`${API}/admin/users/${userId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${getToken()}`,
+                },
+            });
+
+            if (!res.ok) {
+                alert("Failed to delete.");
+                return;
+            }
+
+            onDeleteUser(userId);
+
+            showMessage("User deleted successfully.");
+
+        } catch {
+            alert("Server error.");
+        }
     };
 
     return (
         <div className="admin-section">
             <div className="admin-section__header">
                 <h1 className="admin-section-title">Users</h1>
-                <p className="admin-section-subtitle">Manage users</p>
+                <p className="admin-section-subtitle">
+                    Manage users
+                </p>
             </div>
 
-            {message && <div className="admin-success-message">{message}</div>}
+            {message && (
+                <div className="admin-success-message">
+                    {message}
+                </div>
+            )}
 
             {isFormOpen && (
                 <div className="admin-form-card">
-                    <h2 className="admin-form-title">Edit User</h2>
+                    <h2 className="admin-form-title">
+                        Edit User
+                    </h2>
 
-                    <form className="admin-form" onSubmit={handleSubmit}>
+                    <div className="admin-form">
                         <div className="admin-form-group">
                             <label>Name</label>
+
                             <input
                                 type="text"
                                 name="name"
@@ -97,6 +153,7 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
 
                         <div className="admin-form-group">
                             <label>Email</label>
+
                             <input
                                 type="email"
                                 name="email"
@@ -104,31 +161,6 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
                                 onChange={handleChange}
                                 placeholder="Enter email"
                             />
-                        </div>
-
-                        <div className="admin-form-group">
-                            <label>Role</label>
-                            <select
-                                name="role"
-                                value={formData.role}
-                                onChange={handleChange}
-                            >
-                                <option value="Admin">Admin</option>
-                                <option value="Organizer">Organizer</option>
-                                <option value="Member">Member</option>
-                            </select>
-                        </div>
-
-                        <div className="admin-form-group">
-                            <label>Status</label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                            >
-                                <option value="Active">Active</option>
-                                <option value="Disabled">Disabled</option>
-                            </select>
                         </div>
 
                         <div className="admin-form-actions">
@@ -139,11 +171,16 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
                             >
                                 Cancel
                             </button>
-                            <button type="submit" className="admin-primary-btn">
+
+                            <button
+                                type="button"
+                                className="admin-primary-btn"
+                                onClick={handleSubmit}
+                            >
                                 Save Changes
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             )}
 
@@ -154,7 +191,6 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -162,34 +198,41 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
                     <tbody>
                         {users.length > 0 ? (
                             users.map((user) => (
-                                <tr key={user.id}>
+                                <tr
+                                    key={
+                                        user.user_id ||
+                                        user.id
+                                    }
+                                >
                                     <td>{user.name}</td>
+
                                     <td>{user.email}</td>
+
                                     <td>{user.role}</td>
-                                    <td>
-                                        <span
-                                            className={`admin-status-badge ${
-                                                user.status === "Disabled"
-                                                    ? "admin-status-badge--danger"
-                                                    : ""
-                                            }`}
-                                        >
-                                            {user.status}
-                                        </span>
-                                    </td>
+
                                     <td>
                                         <div className="admin-actions">
                                             <button
                                                 type="button"
                                                 className="admin-action-btn"
-                                                onClick={() => handleOpenEditForm(user)}
+                                                onClick={() =>
+                                                    handleOpenEditForm(
+                                                        user
+                                                    )
+                                                }
                                             >
                                                 Edit
                                             </button>
+
                                             <button
                                                 type="button"
                                                 className="admin-action-btn admin-action-btn--danger"
-                                                onClick={() => handleDelete(user.id)}
+                                                onClick={() =>
+                                                    handleDelete(
+                                                        user.user_id ||
+                                                            user.id
+                                                    )
+                                                }
                                             >
                                                 Delete
                                             </button>
@@ -199,7 +242,9 @@ function UsersView({ users = [], onDeleteUser, onEditUser }) {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="5">No users found.</td>
+                                <td colSpan="4">
+                                    No users found.
+                                </td>
                             </tr>
                         )}
                     </tbody>

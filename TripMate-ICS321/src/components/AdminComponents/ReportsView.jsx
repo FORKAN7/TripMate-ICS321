@@ -3,6 +3,8 @@ import { useState } from "react";
 function ReportsView({ reports = [], onRemoveReport, onReviewReport }) {
     const [message, setMessage] = useState("");
 
+    const getReportId = (report) => report.report_id || report.id;
+
     const showMessage = (text) => {
         setMessage(text);
         setTimeout(() => setMessage(""), 2000);
@@ -14,7 +16,10 @@ function ReportsView({ reports = [], onRemoveReport, onReviewReport }) {
     };
 
     const handleRemove = (reportId) => {
-        const confirmed = window.confirm("Are you sure you want to remove this report?");
+        const confirmed = window.confirm(
+            "Are you sure you want to remove this report?"
+        );
+
         if (!confirmed) return;
 
         onRemoveReport(reportId);
@@ -43,8 +48,9 @@ function ReportsView({ reports = [], onRemoveReport, onReviewReport }) {
                     <tbody>
                         {reports.length > 0 ? (
                             reports.map((report) => (
-                                <tr key={report.id}>
+                                <tr key={getReportId(report)}>
                                     <td>{report.content || "No content"}</td>
+
                                     <td>
                                         <span
                                             className={`admin-status-badge ${
@@ -56,19 +62,25 @@ function ReportsView({ reports = [], onRemoveReport, onReviewReport }) {
                                             {report.status || "Pending"}
                                         </span>
                                     </td>
+
                                     <td>
                                         <div className="admin-actions">
                                             <button
                                                 type="button"
                                                 className="admin-action-btn"
-                                                onClick={() => handleReview(report.id)}
+                                                onClick={() =>
+                                                    handleReview(getReportId(report))
+                                                }
                                             >
                                                 Review
                                             </button>
+
                                             <button
                                                 type="button"
                                                 className="admin-action-btn admin-action-btn--danger"
-                                                onClick={() => handleRemove(report.id)}
+                                                onClick={() =>
+                                                    handleRemove(getReportId(report))
+                                                }
                                             >
                                                 Remove
                                             </button>
