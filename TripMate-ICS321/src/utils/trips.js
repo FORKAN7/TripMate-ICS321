@@ -1,27 +1,89 @@
-const TRIPS_KEY = "tripmate_trips";
+const API = "http://localhost:3001/api";
 
-const getAllTrips = () => JSON.parse(localStorage.getItem(TRIPS_KEY) || "{}");
-const saveAllTrips = (data) => localStorage.setItem(TRIPS_KEY, JSON.stringify(data));
+const getToken = () => localStorage.getItem("tripmate_token");
 
-export const getUserTrips = (email) => {
-    const all = getAllTrips();
-    return all[email] || [];
-};
+// ── GET all trips for logged-in user ────────────────────────────────────────
+export const getUserTrips = async () => {
+    try {
+        const res = await fetch(`${API}/trips`, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (!res.ok) return [];
 
-export const saveUserTrip = (email, trip) => {
-    const all = getAllTrips();
-    const userTrips = all[email] || [];
-    const exists = userTrips.find(t => t.id === trip.id);
-    if (exists) {
-        all[email] = userTrips.map(t => t.id === trip.id ? { ...trip, role: "Organizer" } : t);
-    } else {
-        all[email] = [...userTrips, { ...trip, role: "Organizer", createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }];
+        // Normalize MySQL fields → consistent shape everywhere
+        return Array.isArray(data)
+            ? data.map((t) => ({
+                  ...t,
+                  trip_id:     t.trip_id,
+                  name:        t.title || t.name,          // DB stores "title"
+                  city:        t.destination || t.city,
+                  days:        t.duration   || t.days || 1,
+                  destination: t.destination || t.city,
+                  duration:    t.duration   || t.days || 1,
+                  createdAt:   t.created_at || t.createdAt || new Date().toISOString(),
+                  userRole:    t.userRole   || "Organizer",
+              }))
+            : [];
+    } catch {
+        return [];
     }
-    saveAllTrips(all);
 };
 
-export const deleteUserTrip = (email, tripId) => {
-    const all = getAllTrips();
-    all[email] = (all[email] || []).filter(t => t.id !== tripId);
-    saveAllTrips(all);
+// ── CREATE a new trip ────────────────────────────────────────────────────────
+export const saveUserTrip = async (trip) => {
+    try {
+        // If trip already has a trip_id → UPDATE
+        if (trip.trip_id) {
+            const res = await fetch(`${API}/trips/${trip.trip_id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify({
+                    name:        trip.name,
+                    destination: trip.city || trip.destination,
+                    duration:    trip.days || trip.duration,
+                    itinerary:   trip.itinerary,
+                    members:     trip.members,
+                }),
+            });
+            const data = await res.json();
+            // Return normalized shape so CreateTrip can read trip_id
+            return { ...data, trip_id: data.trip_id };
+        }
+
+        // Otherwise → INSERT
+        const res = await fetch(`${API}/trips`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+                name:        trip.name,
+                destination: trip.city || trip.destination,
+                duration:    trip.days || trip.duration,
+                itinerary:   trip.itinerary,
+                members:     trip.members,
+            }),
+        });
+        const data = await res.json();
+        return { ...data, trip_id: data.trip_id };
+    } catch {
+        return null;
+    }
+};
+
+// ── DELETE a trip ────────────────────────────────────────────────────────────
+export const deleteUserTrip = async (tripId) => {
+    try {
+        await fetch(`${API}/trips/${tripId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+    } catch (error) {
+        console.error("deleteUserTrip error:", error);
+    }
 };

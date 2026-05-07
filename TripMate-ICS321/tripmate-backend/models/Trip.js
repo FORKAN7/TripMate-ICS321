@@ -1,28 +1,83 @@
-import db from "../config/db.js";
+const API = "http://localhost:3001/api";
 
-export const getTripsByUser = async (userId) => {
-  const [rows] = await db.query(
-    "SELECT * FROM TRIP WHERE organizer_id = ?",
-    [userId]
-  );
-  return rows;
+const getToken = () => localStorage.getItem("tripmate_token");
+
+export const getUserTrips = async () => {
+    try {
+        const res  = await fetch(`${API}/trips`, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (!res.ok) return [];
+
+        return Array.isArray(data)
+            ? data.map(t => ({
+                  ...t,
+                  name:        t.title       || t.name,
+                  city:        t.destination || t.city,
+                  days:        t.duration    || t.days || 1,
+                  destination: t.destination || t.city,
+                  duration:    t.duration    || t.days || 1,
+                  createdAt:   t.created_at  || t.createdAt || new Date().toISOString(),
+                  userRole:    t.userRole    || "Organizer",
+              }))
+            : [];
+    } catch {
+        return [];
+    }
 };
 
-export const getTripById = async (tripId) => {
-  const [rows] = await db.query(
-    "SELECT * FROM TRIP WHERE trip_id = ?",
-    [tripId]
-  );
-  return rows[0];
+export const saveUserTrip = async (trip) => {
+    try {
+        // UPDATE — لو عنده trip_id يعني موجود في الـ DB
+        if (trip.trip_id) {
+            const res = await fetch(`${API}/trips/${trip.trip_id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify({
+                    name:        trip.name,
+                    destination: trip.city || trip.destination,
+                    duration:    trip.days || trip.duration,
+                    itinerary:   trip.itinerary,
+                    members:     trip.members,
+                }),
+            });
+            const data = await res.json();
+            return { ...data, trip_id: data.trip_id };
+        }
+
+        // INSERT — trip جديد
+        const res = await fetch(`${API}/trips`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+                name:        trip.name,
+                destination: trip.city || trip.destination,
+                duration:    trip.days || trip.duration,
+                itinerary:   trip.itinerary,
+                members:     trip.members,
+            }),
+        });
+        const data = await res.json();
+        return { ...data, trip_id: data.trip_id };
+    } catch {
+        return null;
+    }
 };
 
-export const createTrip = async ({ title, startDate, endDate, organizerId, inviteCode }) => {
-  const [result] = await db.query(
-    `INSERT INTO TRIP 
-     (title, start_date, end_date, organizer_id, invite_code)
-     VALUES (?, ?, ?, ?, ?)`,
-    [title, startDate, endDate, organizerId, inviteCode]
-  );
-
-  return result.insertId;
+export const deleteUserTrip = async (tripId) => {
+    try {
+        await fetch(`${API}/trips/${tripId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+    } catch (error) {
+        console.error(error);
+    }
 };

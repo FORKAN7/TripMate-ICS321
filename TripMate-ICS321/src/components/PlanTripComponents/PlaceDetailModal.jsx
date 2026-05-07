@@ -1,51 +1,88 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import "../../styles/PlaceDetailModal.css";
+
+const API = import.meta.env.VITE_API;
+const getToken = () => localStorage.getItem("tripmate_token");
+
+const getImageSrc = (place) => {
+    const raw = place.image_url || place.image;
+    if (!raw) return "/placeholder.jpg";
+    if (raw.startsWith("http")) return raw;
+    const filename = raw.split("/").pop();
+    return `/src/assets/imgs/${filename}`;
+};
 
 function PlaceDetailModal({ place, onClose, onAddToTrip }) {
     if (!place) return null;
 
     const [comment, setComment] = useState("");
-    const [userName, setUserName] = useState("");
-    const [rating, setRating] = useState(0);
+    const [rating,  setRating]  = useState(0);
     const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
 
+    const placeId = place.place_id || place.id;
+
+    // ── Fetch reviews from DB ──────────────────────────────────────────────
+    useEffect(() => {
+        const fetchReviews = async () => {
+            try {
+                const res  = await fetch(`${API}/reviews/${placeId}`);
+                const data = await res.json();
+                setReviews(Array.isArray(data) ? data : []);
+            } catch {
+                setReviews([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchReviews();
+    }, [placeId]);
 
     const avgRating =
         reviews.length > 0
             ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
             : place.rating;
 
-    // Handle adding a new review
-    const handleAddReview = () => {
-        if (!userName || !comment || rating === 0) return;
+    // ── Submit review to DB ────────────────────────────────────────────────
+    const handleAddReview = async () => {
+        if (!comment || rating === 0) return;
 
-        const newReview = {
-            name: userName,
-            comment,
-            rating,
-        };
+        try {
+            const res  = await fetch(`${API}/reviews`, {
+                method:  "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify({ place_id: placeId, rating, comment }),
+            });
 
-        setReviews([newReview, ...reviews]); // Add new review to the top of the list
+            const saved = await res.json();
 
-        // reset
-        setComment("");
-        setUserName("");
-        setRating(0);
+            if (res.ok) {
+                // أضف الـ review الجديد فوق القائمة
+                setReviews(prev => [saved, ...prev]);
+                setComment("");
+                setRating(0);
+            }
+        } catch {
+            console.error("Failed to submit review");
+        }
     };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            {/* 1. Modal Container */}
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                
-                {/* 2. Top Section (Image + Text Overlays) */}
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+
+                {/* ── Hero ── */}
                 <div className="modal-hero">
-                    <img src={place.image} alt={place.name} className="modal-image" />
-                    
-                    {/* Positioned at top-right */}
+                    <img
+                        src={getImageSrc(place)}
+                        alt={place.name}
+                        className="modal-image"
+                        onError={e => { e.target.onerror = null; e.target.src = "/placeholder.jpg"; }}
+                    />
                     <button className="modal-close" onClick={onClose}>&times;</button>
-                    
-                    {/* Positioned at bottom-left */}
                     <div className="modal-hero-text">
                         <span className="modal-badge">
                             <span className="modal-badge-icon">🏛️</span>
@@ -55,79 +92,70 @@ function PlaceDetailModal({ place, onClose, onAddToTrip }) {
                     </div>
                 </div>
 
-                {/* 3. Bottom Section (Info + Button) */}
+                {/* ── Info ── */}
                 <div className="modal-info">
                     <div className="modal-meta">
-                        <span className="meta-item location">📍 {place.city}</span>
-                        <span className="meta-item rating"> ⭐ {avgRating} ({reviews.length})</span>
+                        <span className="meta-item location">📍 {place.city_name || place.city}</span>
+                        <span className="meta-item rating">⭐ {avgRating} ({reviews.length} reviews)</span>
                         <span className="meta-item duration">⏱️ 2-3 hrs</span>
                     </div>
-                    
+
                     <p className="modal-description">{place.description}</p>
 
+                    {onAddToTrip && (
+                        <button className="modal-add-btn" onClick={() => onAddToTrip(place)}>
+                            + Add to Trip
+                        </button>
+                    )}
 
-                    {/* Add Review */}
+                    {/* ── Add Review ── */}
                     <div className="review-section">
                         <h3>Add Review</h3>
-
-                        <input
-                            type="text"
-                            placeholder="Your name"
-                            value={userName}
-                            onChange={(e) => setUserName(e.target.value)}
-                        />
 
                         <textarea
                             placeholder="Write your comment..."
                             value={comment}
-                            onChange={(e) => setComment(e.target.value)}
+                            onChange={e => setComment(e.target.value)}
                         />
 
-                        {/* Stars */}
                         <div className="stars">
-                            {[1, 2, 3, 4, 5].map((star) => (
+                            {[1, 2, 3, 4, 5].map(star => (
                                 <span
                                     key={star}
                                     onClick={() => setRating(star)}
                                     style={{
-                                        cursor: "pointer",
-                                        color: star <= rating ? "gold" : "#ccc",
+                                        cursor:   "pointer",
+                                        color:    star <= rating ? "gold" : "#ccc",
                                         fontSize: "22px",
                                     }}
-                                >
-                                    ★
-                                </span>
+                                >★</span>
                             ))}
                         </div>
 
-                        <button onClick={handleAddReview}>
+                        <button onClick={handleAddReview} disabled={!comment || rating === 0}>
                             Submit Review
                         </button>
                     </div>
 
-                    {/* Reviews List */}
+                    {/* ── Reviews List ── */}
                     <div className="reviews-list">
                         <h3>Reviews</h3>
-
-                        {reviews.length === 0 ? (
-                            <p>No reviews yet</p>
+                        {loading ? (
+                            <p>Loading reviews...</p>
+                        ) : reviews.length === 0 ? (
+                            <p>No reviews yet. Be the first!</p>
                         ) : (
-                            reviews.map((rev, index) => (
-                                <div key={index} className="review-item">
-                                    <strong>{rev.name}</strong>
-
+                            reviews.map((rev, i) => (
+                                <div key={rev.review_id || i} className="review-item">
+                                    <strong>{rev.user_name || rev.name || "Anonymous"}</strong>
                                     <div>
-                                        {"★".repeat(rev.rating)}
-                                        {"☆".repeat(5 - rev.rating)}
+                                        {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
                                     </div>
-
                                     <p>{rev.comment}</p>
                                 </div>
                             ))
                         )}
                     </div>
-
-
                 </div>
             </div>
         </div>

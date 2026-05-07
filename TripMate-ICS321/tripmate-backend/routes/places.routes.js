@@ -3,7 +3,7 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-// GET /api/places?city=Riyadh&category=Culture
+// GET /api/places?city=Riyadh&category=food
 router.get("/", async (req, res) => {
   const { city, category } = req.query;
 
@@ -14,8 +14,9 @@ router.get("/", async (req, res) => {
         p.name,
         p.category,
         p.description,
-        p.image_url AS image,
-        c.name AS city
+        p.rating,
+        p.image_url,
+        c.name AS city_name
       FROM PLACE p
       JOIN CITY c ON p.city_id = c.city_id
       WHERE 1=1

@@ -1,27 +1,47 @@
-const USERS_KEY = "tripmate_users";
+const API = "http://localhost:3001/api";
 
-const getUsers = () => JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-const saveUsers = (users) => localStorage.setItem(USERS_KEY, JSON.stringify(users));
-
-export const checkEmailExists = (email) => {
-    const users = getUsers();
-    return !!users.find(u => u.email.toLowerCase() === email.toLowerCase());
-};
-
-export const registerUser = ({ fullName, email, password, role, joinedAt }) => {
-    const users = getUsers();
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-        return { success: false, message: "An account with this email already exists." };
+export const registerUser = async ({ fullName, email, password }) => {
+    try {
+        const res = await fetch(`${API}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { success: false, message: data.message };
+        localStorage.setItem("tripmate_token", data.token);
+        return { success: true, user: data.user };
+    } catch (error) {
+        return { success: false, message: "Server error. Please try again." };
     }
-    const newUser = { fullName, email, password, role, joinedAt };
-    saveUsers([...users, newUser]);
-    return { success: true, user: { name: fullName, email, role, joinedAt } };
 };
 
-export const loginUser = ({ email, password }) => {
-    const users = getUsers();
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) return { success: false, message: "No account found with this email." };
-    if (found.password !== password) return { success: false, message: "Invalid email or password. Please try again." };
-    return { success: true, user: { name: found.fullName, email: found.email, role: found.role, joinedAt: found.joinedAt } };
+export const loginUser = async ({ email, password }) => {
+    try {
+        const res = await fetch(`${API}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { success: false, message: data.message };
+        localStorage.setItem("tripmate_token", data.token);
+        return { success: true, user: data.user };
+    } catch (error) {
+        return { success: false, message: "Server error. Please try again." };
+    }
 };
+
+export const checkEmailExists = async (email) => {
+    try {
+        const res = await fetch(`${API}/auth/check-email?email=${email}`);
+        const data = await res.json();
+        return data.exists;
+    } catch (error) {
+        return false;
+    }
+};
+
+export const getToken = () => localStorage.getItem("tripmate_token");
+
+export const logout = () => localStorage.removeItem("tripmate_token");
