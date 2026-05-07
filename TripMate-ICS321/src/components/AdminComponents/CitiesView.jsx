@@ -1,16 +1,10 @@
 import { useState } from "react";
 
-function CitiesView({
-    cities = [],
-    places = [],
-    onAddCity,
-    onEditCity,
-    onDeleteCity,
-}) {
-    const emptyForm = {
-        oldName: "",
-        name: "",
-    };
+const API = "http://localhost:3001/api";
+const getToken = () => localStorage.getItem("tripmate_token");
+
+function CitiesView({ cities = [], places = [], onAddCity, onEditCity, onDeleteCity }) {
+    const emptyForm = { city_id: null, oldName: "", name: "" };
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -30,9 +24,11 @@ function CitiesView({
 
     const handleOpenEditForm = (city) => {
         setFormData({
+            city_id: city.city_id || city.id,
             oldName: city.name,
             name: city.name,
         });
+
         setIsEditing(true);
         setIsFormOpen(true);
     };
@@ -50,9 +46,7 @@ function CitiesView({
         }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
+    const handleSubmit = async () => {
         const trimmedName = formData.name.trim();
 
         if (!trimmedName) {
@@ -60,23 +54,67 @@ function CitiesView({
             return;
         }
 
-        if (isEditing) {
-            onEditCity(formData.oldName, trimmedName);
-            showMessage("City updated successfully.");
-        } else {
-            onAddCity(trimmedName);
-            showMessage("City added successfully.");
-        }
+        try {
+            if (isEditing) {
+                const res = await fetch(`${API}/admin/cities/${formData.city_id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${getToken()}`,
+                    },
+                    body: JSON.stringify({ cityName: trimmedName }),
+                });
 
-        handleCloseForm();
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.message || "Failed to update city.");
+                    return;
+                }
+
+                onEditCity(formData.oldName, trimmedName, formData.city_id);
+                showMessage("City updated successfully.");
+            } else {
+                await onAddCity(trimmedName);
+                showMessage("City added successfully.");
+            }
+
+            handleCloseForm();
+        } catch {
+            alert("Server error.");
+        }
     };
 
-    const handleDelete = (cityName) => {
-        const confirmed = window.confirm(`Are you sure you want to delete "${cityName}"?`);
+    const handleDelete = async (city) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${city.name}"?`
+        );
+
         if (!confirmed) return;
 
-        onDeleteCity(cityName);
-        showMessage("City deleted successfully.");
+        try {
+            const cityId = city.city_id || city.id;
+
+            const res = await fetch(`${API}/admin/cities/${cityId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${getToken()}`,
+                },
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.log("Server error:", text);
+                alert("Failed to delete.");
+                return;
+            }
+
+            onDeleteCity(city.name, cityId);
+            showMessage("City deleted successfully.");
+        } catch (err) {
+            console.error(err);
+            alert("Server error.");
+        }
     };
 
     return (
@@ -104,9 +142,10 @@ function CitiesView({
                         {isEditing ? "Edit City" : "Add New City"}
                     </h2>
 
-                    <form className="admin-form" onSubmit={handleSubmit}>
+                    <div className="admin-form">
                         <div className="admin-form-group">
                             <label>City Name</label>
+
                             <input
                                 type="text"
                                 value={formData.name}
@@ -124,11 +163,15 @@ function CitiesView({
                                 Cancel
                             </button>
 
-                            <button type="submit" className="admin-primary-btn">
+                            <button
+                                type="button"
+                                className="admin-primary-btn"
+                                onClick={handleSubmit}
+                            >
                                 {isEditing ? "Save Changes" : "Add City"}
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             )}
 
@@ -146,11 +189,11 @@ function CitiesView({
                         {cities.length > 0 ? (
                             cities.map((city) => {
                                 const placeCount = places.filter(
-                                    (place) => place.city === city.name
+                                    (p) => (p.city || p.city_name) === city.name
                                 ).length;
 
                                 return (
-                                    <tr key={city.id}>
+                                    <tr key={city.city_id || city.id}>
                                         <td>{city.name}</td>
                                         <td>{placeCount}</td>
                                         <td>
@@ -166,7 +209,7 @@ function CitiesView({
                                                 <button
                                                     type="button"
                                                     className="admin-action-btn admin-action-btn--danger"
-                                                    onClick={() => handleDelete(city.name)}
+                                                    onClick={() => handleDelete(city)}
                                                 >
                                                     Delete
                                                 </button>

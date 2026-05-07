@@ -1,14 +1,11 @@
 import { useState } from "react";
 
-function PlacesView({
-    places = [],
-    cities = [],
-    onAddPlace,
-    onEditPlace,
-    onDeletePlace,
-}) {
+const API = "http://localhost:3001/api";
+const getToken = () => localStorage.getItem("tripmate_token");
+
+function PlacesView({ places = [], cities = [], onAddPlace, onEditPlace, onDeletePlace }) {
     const emptyForm = {
-        id: null,
+        place_id: null,
         name: "",
         city: "",
         category: "",
@@ -20,6 +17,8 @@ function PlacesView({
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState(emptyForm);
     const [message, setMessage] = useState("");
+
+    const getPlaceId = (place) => place.place_id || place.id;
 
     const showMessage = (text) => {
         setMessage(text);
@@ -34,12 +33,12 @@ function PlacesView({
 
     const handleOpenEditForm = (place) => {
         setFormData({
-            id: place.id,
+            place_id: getPlaceId(place),
             name: place.name || "",
-            city: place.city || "",
+            city: place.city || place.city_name || "",
             category: place.category || "",
             description: place.description || "",
-            image: place.image || "",
+            image: place.image || place.image_url || "",
         });
         setIsEditing(true);
         setIsFormOpen(true);
@@ -53,42 +52,84 @@ function PlacesView({
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        if (
-            !formData.name.trim() ||
-            !formData.city.trim() ||
-            !formData.category.trim() ||
-            !formData.description.trim()
-        ) {
+    const handleSubmit = async () => {
+        if (!formData.name.trim() || !formData.city.trim() || !formData.category.trim() || !formData.description.trim()) {
             alert("Please fill in all required fields.");
             return;
         }
 
-        if (isEditing) {
-            onEditPlace(formData);
-            showMessage("Place updated successfully.");
-        } else {
-            onAddPlace(formData);
-            showMessage("Place added successfully.");
-        }
+        try {
+            const url = isEditing
+                ? `${API}/admin/places/${formData.place_id}`
+                : `${API}/admin/places`;
 
-        handleCloseForm();
+            const res = await fetch(url, {
+                method: isEditing ? "PUT" : "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    city: formData.city,
+                    category: formData.category,
+                    description: formData.description,
+                    image: formData.image,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.message || "Request failed.");
+                return;
+            }
+
+            const fixedPlace = {
+                ...data,
+                id: data.place_id || data.id,
+                place_id: data.place_id || data.id,
+                city: data.city || data.city_name || formData.city,
+                image: data.image || data.image_url || formData.image,
+            };
+
+            if (isEditing) {
+                onEditPlace(fixedPlace);
+                showMessage("Place updated successfully.");
+            } else {
+                onAddPlace(fixedPlace);
+                showMessage("Place added successfully.");
+            }
+
+            handleCloseForm();
+        } catch {
+            alert("Server error.");
+        }
     };
 
-    const handleDelete = (placeId) => {
+    const handleDelete = async (placeId) => {
         const confirmed = window.confirm("Are you sure you want to delete this place?");
         if (!confirmed) return;
 
-        onDeletePlace(placeId);
-        showMessage("Place deleted successfully.");
+        try {
+            const res = await fetch(`${API}/admin/places/${placeId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${getToken()}` },
+            });
+
+            if (!res.ok) {
+                alert("Failed to delete.");
+                return;
+            }
+
+            onDeletePlace(placeId);
+            showMessage("Place deleted successfully.");
+        } catch {
+            alert("Server error.");
+        }
     };
 
     return (
@@ -99,11 +140,7 @@ function PlacesView({
                     <p className="admin-section-subtitle">Manage places in your platform</p>
                 </div>
 
-                <button
-                    type="button"
-                    className="admin-primary-btn"
-                    onClick={handleOpenAddForm}
-                >
+                <button type="button" className="admin-primary-btn" onClick={handleOpenAddForm}>
                     Add Place
                 </button>
             </div>
@@ -112,32 +149,20 @@ function PlacesView({
 
             {isFormOpen && (
                 <div className="admin-form-card">
-                    <h2 className="admin-form-title">
-                        {isEditing ? "Edit Place" : "Add New Place"}
-                    </h2>
+                    <h2 className="admin-form-title">{isEditing ? "Edit Place" : "Add New Place"}</h2>
 
-                    <form className="admin-form" onSubmit={handleSubmit}>
+                    <div className="admin-form">
                         <div className="admin-form-group">
                             <label>Place Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="Enter place name"
-                            />
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} />
                         </div>
 
                         <div className="admin-form-group">
                             <label>City</label>
-                            <select
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                            >
+                            <select name="city" value={formData.city} onChange={handleChange}>
                                 <option value="">Select city</option>
                                 {cities.map((city) => (
-                                    <option key={city.id} value={city.name}>
+                                    <option key={city.city_id || city.id} value={city.name}>
                                         {city.name}
                                     </option>
                                 ))}
@@ -146,11 +171,7 @@ function PlacesView({
 
                         <div className="admin-form-group">
                             <label>Category</label>
-                            <select
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                            >
+                            <select name="category" value={formData.category} onChange={handleChange}>
                                 <option value="">Select category</option>
                                 <option value="nature">Nature</option>
                                 <option value="food">Food</option>
@@ -162,40 +183,27 @@ function PlacesView({
 
                         <div className="admin-form-group">
                             <label>Description</label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                placeholder="Enter place description"
-                                rows="4"
-                            />
+                            <textarea name="description" value={formData.description} onChange={handleChange} rows="4" />
                         </div>
 
                         <div className="admin-form-group">
-                            <label>Image URL or Name</label>
+                            <label>Image File Name</label>
                             <input
                                 type="text"
                                 name="image"
                                 value={formData.image}
                                 onChange={handleChange}
-                                placeholder="Enter image path or URL"
+                                placeholder="example: northyard.webp"
                             />
                         </div>
 
                         <div className="admin-form-actions">
-                            <button
-                                type="button"
-                                className="admin-action-btn"
-                                onClick={handleCloseForm}
-                            >
-                                Cancel
-                            </button>
-
-                            <button type="submit" className="admin-primary-btn">
+                            <button type="button" className="admin-action-btn" onClick={handleCloseForm}>Cancel</button>
+                            <button type="button" className="admin-primary-btn" onClick={handleSubmit}>
                                 {isEditing ? "Save Changes" : "Add Place"}
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             )}
 
@@ -214,35 +222,31 @@ function PlacesView({
                     <tbody>
                         {places.length > 0 ? (
                             places.map((place) => (
-                                <tr key={place.id}>
+                                <tr key={getPlaceId(place)}>
                                     <td>
                                         <div className="admin-place-cell">
-                                            <span className="admin-place-cell__name">
-                                                {place.name}
-                                            </span>
+                                            <span className="admin-place-cell__name">{place.name}</span>
                                             <span className="admin-place-cell__desc">
                                                 {place.description?.slice(0, 55)}
                                                 {place.description?.length > 55 ? "..." : ""}
                                             </span>
                                         </div>
                                     </td>
-                                    <td>{place.city}</td>
+
+                                    <td>{place.city || place.city_name}</td>
                                     <td className="admin-capitalize">{place.category}</td>
-                                    <td>{place.rating}</td>
+                                    <td>{place.rating || 0}</td>
+
                                     <td>
                                         <div className="admin-actions">
-                                            <button
-                                                type="button"
-                                                className="admin-action-btn"
-                                                onClick={() => handleOpenEditForm(place)}
-                                            >
+                                            <button type="button" className="admin-action-btn" onClick={() => handleOpenEditForm(place)}>
                                                 Edit
                                             </button>
 
                                             <button
                                                 type="button"
                                                 className="admin-action-btn admin-action-btn--danger"
-                                                onClick={() => handleDelete(place.id)}
+                                                onClick={() => handleDelete(getPlaceId(place))}
                                             >
                                                 Delete
                                             </button>

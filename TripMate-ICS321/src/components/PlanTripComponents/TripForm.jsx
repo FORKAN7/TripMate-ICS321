@@ -1,17 +1,25 @@
-import React from 'react';
-// This component doesn't store state itself — it just displays and reports changes
+import React, { useState, useEffect } from 'react';
+ 
 function TripForm({ tripName, setTripName, selectedCity, setSelectedCity, numDays, setNumDays, onCreate, formError }) {
-
-    // List of Saudi cities the organizer can choose from
-    const cities = ["Al Hassa", "Riyadh", "Jeddah", "Abha", "AlUla"];
-
-    // Day options: 1 to 7
-    const dayOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12];
-
+ 
+    const [cities, setCities] = useState([]);
+    const dayOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+ 
+    useEffect(() => {
+        const fetchCities = async () => {
+            try {
+const res = await fetch("http://localhost:3001/api/admin/cities-list");                const data = await res.json();
+                setCities(Array.isArray(data) ? data.map(c => c.name) : []);
+            } catch {
+                setCities(["AlHassa", "Riyadh", "Jeddah", "Abha", "AlUla"]);
+            }
+        };
+        fetchCities();
+    }, []);
+ 
     return (
         <div className="trip-form">
-
-            {/* Trip Name Input */}
+ 
             <div className="trip-form__field">
                 <label className="trip-form__label">Trip Name</label>
                 <input
@@ -19,17 +27,16 @@ function TripForm({ tripName, setTripName, selectedCity, setSelectedCity, numDay
                     type="text"
                     placeholder="e.g. Al-Hassa vacation"
                     value={tripName}
-                    onChange={(e) => setTripName(e.target.value)}  // tells parent the new value
+                    onChange={(e) => setTripName(e.target.value)}
                 />
             </div>
-
-            {/* City Dropdown */}
+ 
             <div className="trip-form__field">
                 <label className="trip-form__label">Destination</label>
                 <select
                     className="trip-form__select"
                     value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}  // tells parent chosen city
+                    onChange={(e) => setSelectedCity(e.target.value)}
                 >
                     <option value="">Select a city</option>
                     {cities.map((city) => (
@@ -37,32 +44,30 @@ function TripForm({ tripName, setTripName, selectedCity, setSelectedCity, numDay
                     ))}
                 </select>
             </div>
-
-            {/* Number of Days Dropdown */}
+ 
             <div className="trip-form__field">
                 <label className="trip-form__label">Duration</label>
                 <select
                     className="trip-form__select"
                     value={numDays}
-                    onChange={(e) => setNumDays(Number(e.target.value))}  // convert to number!
+                    onChange={(e) => setNumDays(Number(e.target.value))}
                 >
                     {dayOptions.map((day) => (
                         <option key={day} value={day}>{day} {day === 1 ? "Day" : "Days"}</option>
                     ))}
                 </select>
             </div>
-
-            {/* Create Button */}
+ 
             <button className="trip-form__add-btn" onClick={onCreate}>
                 + Create Trip
             </button>
-
+ 
             {formError && (
                 <p className="trip-form__error">{formError}</p>
             )}
-
+ 
         </div>
     );
 }
-
+ 
 export default TripForm;

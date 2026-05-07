@@ -1,16 +1,44 @@
-import React from "react";
-import '../../styles/CityTabs.css';
+import React, { useEffect, useState } from "react";
+import "../../styles/CityTabs.css";
 
-const cities = [
-  { id: "All", label: "All" },
-  { id: "Riyadh", label: "Riyadh" },
-  { id: "Jeddah", label: "Jeddah" },
-  { id: "Abha", label: "Abha" },
-  { id: "AlUla", label: "AlUla" },
-  { id: "AlHassa", label: "AlHassa" },
-];
+const API = "http://localhost:3001/api";
+
+const preferredOrder = ["Riyadh", "Jeddah", "Abha", "AlUla", "AlHassa"];
 
 function CityTabs({ selected, onSelect }) {
+  const [cities, setCities] = useState([{ id: "All", label: "All" }]);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const res = await fetch(`${API}/admin/cities-list`);
+        const data = await res.json();
+
+        if (Array.isArray(data)) {
+          const namesFromDB = data.map((c) => c.name);
+
+          const orderedNames = preferredOrder.filter((name) =>
+            namesFromDB.some(
+              (dbName) => dbName.toLowerCase() === name.toLowerCase()
+            )
+          );
+
+          setCities([
+            { id: "All", label: "All" },
+            ...orderedNames.map((name) => ({
+              id: name,
+              label: name,
+            })),
+          ]);
+        }
+      } catch {
+        setCities([{ id: "All", label: "All" }]);
+      }
+    };
+
+    fetchCities();
+  }, []);
+
   return (
     <div className="city-tabs">
       {cities.map((city) => (

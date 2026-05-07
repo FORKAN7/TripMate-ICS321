@@ -2,12 +2,12 @@ import { useState } from "react";
 
 function MemberPanel({ members, onAdd, onRemove, tripName }) {
 
-    // local state for inputs and messages
     const [emailInput, setEmailInput] = useState("");
     const [nameInput, setNameInput] = useState("");
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
-    const handleAdd = () => {
+
+    const handleAdd = async () => {
         if (!emailInput || !nameInput) {
             setError("Please enter both name and email.");
             setSuccessMsg("");
@@ -15,7 +15,6 @@ function MemberPanel({ members, onAdd, onRemove, tripName }) {
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         if (!emailRegex.test(emailInput)) {
             setError("Please enter a valid email address.");
             setSuccessMsg("");
@@ -29,34 +28,38 @@ function MemberPanel({ members, onAdd, onRemove, tripName }) {
             return;
         }
 
-        onAdd({ name: nameInput, email: emailInput });
+        const result = await onAdd({ name: nameInput, email: emailInput });
 
-        setSuccessMsg(
-            `${nameInput} has been notified: "You have been added to ${tripName || "the"} trip!"`
-        );
+        if (result === false) {
+            setError("No account found with this email.");
+            setSuccessMsg("");
+            return;
+        }
+        if (result === "self") {
+            setError("You can't add yourself to the trip.");
+            setSuccessMsg("");
+            return;
+        }
+
+        setSuccessMsg(`${nameInput} has been notified: "You have been added to ${tripName || "the"} trip!"`);
         setError("");
-
         setEmailInput("");
         setNameInput("");
     };
 
-
-    // Function to handle removal and show the message
     const handleRemoveClick = (member) => {
-        onRemove(member.id); // Call the parent function to delete
+        onRemove(member.id);
         setSuccessMsg(`${member.name} has been deleted from ${tripName || "the"} trip.`);
-        setError(""); // Clear any existing errors
+        setError("");
     };
 
     return (
         <div className="member-panel">
 
-            {/* Title */}
             <h2 className="member-panel__title">
                 👥 Trip Members ({members.length})
             </h2>
 
-            {/* Members List */}
             <ul className="member-panel__list">
                 {members.map((member) => (
                     <li key={member.id} className="member-panel__item">
@@ -75,7 +78,6 @@ function MemberPanel({ members, onAdd, onRemove, tripName }) {
                         ) : (
                             <button
                                 className="member-panel__remove"
-                                // Updated to use the new local handler
                                 onClick={() => handleRemoveClick(member)}
                             >
                                 ✕
@@ -88,7 +90,6 @@ function MemberPanel({ members, onAdd, onRemove, tripName }) {
 
             <hr className="member-panel__divider" />
 
-            {/* Add Member Form */}
             <div className="member-panel__add">
                 <p className="member-panel__add-title">Add Member</p>
 
@@ -109,8 +110,6 @@ function MemberPanel({ members, onAdd, onRemove, tripName }) {
                 />
 
                 {error && <p className="member-panel__error">{error}</p>}
-
-                {/* This will now show both Add and Delete notifications */}
                 {successMsg && <p className="member-panel__success">{successMsg}</p>}
 
                 <button className="member-panel__add-btn" onClick={handleAdd}>
