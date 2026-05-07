@@ -16,7 +16,7 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://tripmate-1-mc1w.onrender.com"
+ 
   ],
   credentials: true
 }));
