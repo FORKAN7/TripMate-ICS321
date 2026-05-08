@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function MemberPanel({ members, onAdd, onRemove, tripName }) {
+function MemberPanel({ members = [], onAdd, onRemove, tripName }) {
 
     const [emailInput, setEmailInput] = useState("");
     const [nameInput, setNameInput] = useState("");

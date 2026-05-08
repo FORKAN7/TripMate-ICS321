@@ -1,6 +1,7 @@
 const API = "http://localhost:3001/api";
 
 export const registerUser = async ({ fullName, email, password }) => {
+    
     try {
         const res = await fetch(`${API}/auth/register`, {
             method: "POST",
@@ -10,6 +11,7 @@ export const registerUser = async ({ fullName, email, password }) => {
         const data = await res.json();
         if (!res.ok) return { success: false, message: data.message };
         localStorage.setItem("tripmate_token", data.token);
+        localStorage.setItem("tripmate_user", JSON.stringify(data.user));
         return { success: true, user: data.user };
     } catch (error) {
         return { success: false, message: "Server error. Please try again." };

@@ -32,25 +32,60 @@ function SignUp({ onNavigate, setUser }) {
         return newErrors;
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const newErrors = validate();
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setBanner(null);
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setBanner(null);
+        return;
+    }
+
+    setErrors({});
+
+    try {
+        const exists = await checkEmailExists(email);
+        if (exists) {
+            setBanner({
+                type: "error",
+                message: "An account with this email already exists.",
+            });
             return;
         }
-        setErrors({});
-        if (checkEmailExists(email)) {
-            setBanner({ type: "error", message: "An account with this email already exists." });
-            return;
-        }
+
         const joinedAt = new Date();
-        const result = registerUser({ fullName, email, password, role: "member", joinedAt });
+        const result = await registerUser({
+            fullName,
+            email,
+            password,
+            role: "member",
+            joinedAt,
+        });
+
+        if (!result.success) {
+            setBanner({
+                type: "error",
+                message: result.message || "Signup failed.",
+            });
+            return;
+        }
+
         setUser(result.user);
-        setBanner({ type: "success", message: "Account created! Redirecting..." });
+
+        setBanner({
+            type: "success",
+            message: "Account created! Redirecting...",
+        });
+
         setTimeout(() => onNavigate("profile"), 1500);
-    };
+    } catch {
+        setBanner({
+            type: "error",
+            message: "Server error. Please try again.",
+        });
+    }
+};
 
     return (
         <div className="auth-page">

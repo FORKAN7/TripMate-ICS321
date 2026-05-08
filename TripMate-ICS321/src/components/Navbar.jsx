@@ -23,6 +23,7 @@ function Navbar({ onNavigate, user, currentPage, setUser, isGuest }) {
         localStorage.removeItem("tripmate_user");
         localStorage.removeItem("tripmate_guest");
         localStorage.setItem("tripmate_page", "home");
+        localStorage.removeItem("tripmate_token");
         onNavigate("home");
     };
 

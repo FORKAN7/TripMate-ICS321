@@ -7,7 +7,6 @@ function ItineraryPanel({ tripName, itinerary, numDays, onRemove }) {
         <div className="itinerary-panel">
             <h2 className="itinerary-panel__title">🗒️ Your Itinerary</h2>
 
-            {/* Display the Trip Name prominently if it exists [cite: 183] */}
             {tripName && (
                 <p className="itinerary-panel__trip-name" style={{
                     fontSize: '18px',
@@ -38,11 +37,12 @@ function ItineraryPanel({ tripName, itinerary, numDays, onRemove }) {
                         ) : (
                             <ul className="itinerary-panel__list">
                                 {places.map((place) => (
-                                    <li key={place.id} className="itinerary-panel__item">
+                                    // ✅ place_id بدل id
+                                    <li key={place.place_id} className="itinerary-panel__item">
                                         <span>{place.name}</span>
                                         <button
                                             className="itinerary-panel__remove"
-                                            onClick={() => onRemove(day, place.id)}
+                                            onClick={() => onRemove(day, place.place_id)}
                                         >
                                             ✕
                                         </button>

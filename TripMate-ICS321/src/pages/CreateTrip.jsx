@@ -350,6 +350,8 @@ function CreateTrip({ onNavigate, user, currentPage, setUser }) {
             </div>
         </div>
     );
+
 }
+
 
 export default CreateTrip;

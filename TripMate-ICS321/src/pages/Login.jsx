@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "../styles/auth.css";
+import { loginUser } from "../utils/auth";
 
 function Login({ onNavigate, setUser }) {
     const [email, setEmail] = useState("");
@@ -24,50 +25,39 @@ function Login({ onNavigate, setUser }) {
         return newErrors;
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        const newErrors = validate();
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            setBanner(null);
-            return;
-        }
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setBanner(null);
+        return;
+    }
 
-        setErrors({});
+    setErrors({});
 
-        const normalizedEmail = email.trim().toLowerCase();
-        const adminEmail = "admin@gmail.com";
-        const adminPassword = "admin123";
+    try {
+        const result = await loginUser({
+            email: email.trim().toLowerCase(),
+            password,
+        });
 
-        if (normalizedEmail === adminEmail) {
-            if (password !== adminPassword) {
-                setBanner({
-                    type: "error",
-                    message: "Invalid admin password. Please try again.",
-                });
-                return;
-            }
-
-            setUser({
-                name: "Admin",
-                email: normalizedEmail,
-                role: "Admin",
-            });
-
+        if (!result.success) {
             setBanner({
-                type: "success",
-                message: "Admin login successful! Redirecting...",
+                type: "error",
+                message: result.message || "Login failed.",
             });
-
-            setTimeout(() => onNavigate("admin"), 1200);
             return;
         }
+
+        const loggedUser = result.user;
 
         setUser({
-            name: normalizedEmail.split("@")[0],
-            email: normalizedEmail,
-            role: "Member",
+            name: loggedUser.name || loggedUser.fullName || loggedUser.email.split("@")[0],
+            email: loggedUser.email,
+            role: loggedUser.role || "Member",
+            created_at: loggedUser.created_at || loggedUser.joinedAt || null,
         });
 
         setBanner({
@@ -75,8 +65,16 @@ function Login({ onNavigate, setUser }) {
             message: "Login successful! Redirecting...",
         });
 
-        setTimeout(() => onNavigate("profile"), 1200);
-    };
+        setTimeout(() => {
+            onNavigate(loggedUser.role === "Admin" ? "admin" : "profile");
+        }, 1200);
+    } catch {
+        setBanner({
+            type: "error",
+            message: "Server error. Please try again.",
+        });
+    }
+};
 
     return (
         <div className="auth-page">
